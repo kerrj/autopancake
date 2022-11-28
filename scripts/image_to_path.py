@@ -11,6 +11,8 @@ import imageio
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import ndimage
+import pickle as pkl
+import json
 
 warnings.filterwarnings(
     "ignore",
@@ -662,9 +664,9 @@ def parseArgs(namespace):
     argParser.add_argument(
         "-o",
         "--output",
-        type=argparse.FileType("w"),
+        # type=argparse.FileType("w"),
         required=True,
-        metavar="FILE",
+        # metavar="FILE",
         help="Output file",
     )
     argParser.add_argument(
@@ -839,9 +841,14 @@ def main():
         axs[6].plot(fill_path[:, 0], fill_path[:, 1], 'b', linewidth=0.5)
         axs[6].axis("equal")
         plt.show()
+    
+    all_paths = filtered_paths.copy()
+    all_paths.insert(0,shape_outline)
+    all_paths.append(fill_path)
+    with open(Args.output, "wb") as f:
+        pkl.dump(all_paths, f)
 
-
-
+    return all_paths
 
 if __name__ == "__main__":
     main()

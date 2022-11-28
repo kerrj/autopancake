@@ -2,16 +2,30 @@ from autopancake.drawer import PancakeDrawer
 import numpy as np
 import matplotlib.pyplot as plt
 from autopancake.planner import generate_circle_traj
-
+import argparse
+import pickle as pkl
 PAN_CENTER = (.65,0,.0)
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--input", help="input waypoints file")
+    args = parser.parse_args()
+
     drawer = PancakeDrawer(PAN_CENTER)
-
-    waypoints = generate_circle_traj(.1,0.001,0.1)
-
-    # plt.plot(waypoints[:,0],waypoints[:,1])
-    # plt.show()
+    if args.input is None:
+        waypoints = generate_circle_traj(.1,0.001,0.1)
+        all_waypoints = [waypoints for i in range(2)]
+    else:
+        with open(args.input,'rb') as f:
+            all_waypoints = pkl.load(f)
+        #normalize the traj
+        max_value = max([abs(wp).max() for wp in all_waypoints])
+        all_waypoints = [0.2*wp/max_value - 0.1 for wp in all_waypoints]
+        all_waypoints = [np.concatenate([wp,np.zeros((len(wp),1))],axis=1) for wp in all_waypoints]
+        
+        # for wp in all_waypoints:
+        #     plt.plot(wp[:,0],wp[:,1])
+        # plt.show()
 
     #home the arm
     drawer.home()
@@ -22,4 +36,8 @@ if __name__ == '__main__':
     print("finished closing")
     
     #execute the drawing
-    drawer.draw_path(waypoints)
+    # for wp in all_waypoints:
+    #     input("Press enter to do next")
+    #     drawer.draw_path(wp)
+
+    drawer.draw_multi_paths(all_waypoints)

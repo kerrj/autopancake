@@ -18,7 +18,8 @@ class PancakeDrawer:
         '''
         Given a list of coords, 
         '''
-        self.ur.gripper_set.set_force(50)
+        # self.ur.gripper_set.set_force(50)
+        self.ur.gripper_set.set_force(5)
         self.ur.set_tcp(RigidTransform(translation=[0,0,0.15],rotation=RigidTransform.y_axis_rotation(-np.pi/2)))
         poses = [RigidTransform(translation=np.array(waypoint)+self.pan_center,rotation = RigidTransform.z_axis_rotation(-np.pi/2)) for waypoint in path]
         self.ur.move_pose(poses[0],vel=.3)
@@ -36,10 +37,18 @@ class PancakeDrawer:
             cur_pose = self.ur.get_pose()
             dist_traveled = 1000*np.linalg.norm(cur_pose.translation-last_pose.translation)
             last_pose = cur_pose
-            cur_dist += dist_traveled*self.close_rate*(255/100)
+            cur_dist += dist_traveled*self.close_rate*(255/500)
             print("cur_dist",cur_dist)
             self.ur.gripper.move(np.clip(cur_dist,0,255),0,20)
             time.sleep(.1)
+    
+    def draw_multi_paths(self, paths: List):
+        start_gripper_pos = self.ur.gripper.get_current_position()
+        for path in paths:
+            if path.shape[-1]==2:
+                path = np.concatenate([path,np.zeros((len(path),1))],axis=1)
+            self.draw_path(path)
+            self.ur.gripper.move(np.clip(start_gripper_pos,0,255),0,20)
         
     def home(self):
         self.ur.move_joint(self.HOME_JOINTS,vel=.2)
