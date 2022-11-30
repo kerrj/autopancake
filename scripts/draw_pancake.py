@@ -4,12 +4,12 @@ import matplotlib.pyplot as plt
 from autopancake.planner import generate_circle_traj
 import argparse
 import pickle as pkl
-PAN_CENTER = (-.13,-.64,0.)
+PAN_CENTER = (-.13,-.64, .0575)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input", help="input waypoints file")
-    parser.add_argument("-s", "--scale", type=float, default=0.1, help="scale")
+    parser.add_argument("-s", "--scale", type=float, default=0.08,help="scale")
     args = parser.parse_args()
 
     drawer = PancakeDrawer(PAN_CENTER)
@@ -29,7 +29,7 @@ if __name__ == '__main__':
     
     # #accept the bottle
     input("Press enter to close around the bottle")
-    drawer.close_on_bottle(83)
+    drawer.close_on_bottle(80)
     print("finished closing")
     
     #execute the drawing

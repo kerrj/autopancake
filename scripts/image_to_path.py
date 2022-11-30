@@ -851,7 +851,13 @@ def main():
     print(f"NUM PATHS: {len(filtered_paths)}")
     filtered_paths = filtered_paths[: 10] # take max 10 paths
 
-    fill_path = fill_shape_path(a_shape, distance=0.035)
+    fill_path = fill_shape_path(a_shape, distance=0.042)
+
+    all_paths = filtered_paths.copy()
+    all_paths.insert(0,shape_outline)
+    all_paths.append(fill_path)
+    with open(Args.output, "wb") as f:
+        pkl.dump(all_paths, f)
 
     if Args.plot:
         fig, axs = plt.subplots(1, 7)
@@ -881,12 +887,6 @@ def main():
         axs[6].axis("equal")
         plt.show()
     
-    all_paths = filtered_paths.copy()
-    all_paths.insert(0,shape_outline)
-    all_paths.append(fill_path)
-    with open(Args.output, "wb") as f:
-        pkl.dump(all_paths, f)
-
     return all_paths
 
 if __name__ == "__main__":

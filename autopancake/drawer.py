@@ -10,7 +10,7 @@ class PancakeDrawer:
         self.ur.gripper_set.set_speed(0)
         self.ur.gripper_set.set_force(0)
         self.ur.gripper.move_and_wait_for_pos(0,255,255)
-        self.close_rate = 0.012 #TODO calibrate this: % of gripper close distance per mm of travel
+        self.close_rate = 0.025 #TODO calibrate this: % of gripper close distance per mm of travel
         self.pan_center = np.array(pan_center)
         self.draw_speed = .05#meters/s
         
@@ -22,10 +22,10 @@ class PancakeDrawer:
         # self.ur.gripper_set.set_force(5)
         self.ur.set_tcp(RigidTransform(translation=[0,0,0.15],rotation=RigidTransform.y_axis_rotation(-np.pi/2)))
         poses = [RigidTransform(translation=np.array(waypoint)+self.pan_center,rotation = RigidTransform.z_axis_rotation(-np.pi/2)) for waypoint in path]
-        self.ur.move_pose(poses[0],vel=.8)
+        self.ur.move_pose(poses[0],vel=.35)
         self.ur.move_tcp_path(poses[1:],vels = [self.draw_speed]*len(poses[1:]),
                             accs = [1.0]*len(poses[1:]),
-                            blends = [.005]*(len(poses[1:])-1)+[0],
+                            blends = [.002]*(len(poses[1:])-1)+[0],
                             asyn=True)
         self.ur.gripper.move(np.clip(gripper_pos, 0, 255), 0, 20)
         last_pose = None
@@ -45,14 +45,25 @@ class PancakeDrawer:
     
     def draw_multi_paths(self, paths: List):
         start_gripper_pos = self.ur.gripper.get_current_position()
-        end_gripper_pos = start_gripper_pos + 10
+        end_gripper_pos = start_gripper_pos
+        i=0
         for path in paths:
             if path.shape[-1]==2:
                 path = np.concatenate([path,np.zeros((len(path),1))],axis=1)
-            self.draw_path(path, end_gripper_pos)
+            self.draw_path(path, end_gripper_pos+25)
             end_gripper_pos = self.ur.gripper.get_current_position()
-            self.ur.gripper.move(np.clip(start_gripper_pos,0,255),0,20)
+            if i==0:
+                self.ur.gripper.move(np.clip(start_gripper_pos+20,0,255),0,20)
+            else:
+                self.ur.gripper.move(np.clip(start_gripper_pos+10,0,255),0,20)
+            start_gripper_pos = end_gripper_pos
+            self.close_rate = 0.015
+            i += 1
         
+        curr_pos = self.ur.get_pose()
+        curr_pos.translation[2] += 0.05
+        self.ur.move_pose(curr_pos)
+            
     def home(self):
         self.ur.move_joint(self.HOME_JOINTS,vel=.2)
         
