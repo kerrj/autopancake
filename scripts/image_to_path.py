@@ -792,7 +792,7 @@ def fill_shape_path(shape: Polygon, distance: float = 2.0) -> np.ndarray:
         grid_points.append([[x, y] for y in row_points])
 
     # only keep points that are within the shape
-    array_points  =[]
+    array_points = []
     for line_points in grid_points:
         good_points = []
         for p in line_points:
@@ -805,7 +805,6 @@ def fill_shape_path(shape: Polygon, distance: float = 2.0) -> np.ndarray:
 
     points = np.array(array_points)
     return points
-
 
 
 def fill_shape_path2(shape: Polygon, distance: float = 2.0) -> np.ndarray:
