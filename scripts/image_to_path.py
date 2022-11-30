@@ -1,18 +1,18 @@
 import argparse
+import json
+import pickle as pkl
 import warnings
-
-from shapely.geometry import Point, Polygon
-from typing import List
-from descartes import PolygonPatch
 from collections import defaultdict
-import cv2
+from typing import List
+
 import alphashape
+import cv2
 import imageio
 import matplotlib.pyplot as plt
 import numpy as np
+from descartes import PolygonPatch
 from scipy import ndimage
-import pickle as pkl
-import json
+from shapely.geometry import Point, Polygon
 
 warnings.filterwarnings(
     "ignore",
@@ -614,6 +614,8 @@ def sobel(image):
     if len(res.shape) == 2:
         res = np.dstack([res, res, res])
     return res[2:-2, 2:-2, 0:3]
+
+
 #
 #
 # def sobel(image):
@@ -707,7 +709,9 @@ def parseArgs(namespace):
         argParser.error("value for --threshold should be in range (0,255)")
 
 
-def voxel_grid_filter_2d(points: np.ndarray, grid_resolution: float = 1.0) -> np.ndarray:
+def voxel_grid_filter_2d(
+    points: np.ndarray, grid_resolution: float = 1.0
+) -> np.ndarray:
     """
     Voxel grid filter for 2D point clouds
     """
@@ -725,9 +729,17 @@ def voxel_grid_filter_2d(points: np.ndarray, grid_resolution: float = 1.0) -> np
     return np.array(points_filtered)
 
 
-def create_path_with_points(points: np.array, outline: np.array, thresh: float)-> np.array:
+def create_path_with_points(
+    points: np.array, outline: np.array, thresh: float
+) -> np.array:
     # first remove all points within thresh to an outline point
-    points = np.array([p for p in points if not any([np.linalg.norm(p - o) < thresh for o in outline])])
+    points = np.array(
+        [
+            p
+            for p in points
+            if not any([np.linalg.norm(p - o) < thresh for o in outline])
+        ]
+    )
 
     # create a path starting from the first point, then go to the closest point, then to the closest point, etc.
     path = [points[0]]
@@ -737,6 +749,7 @@ def create_path_with_points(points: np.array, outline: np.array, thresh: float)-
         path.append(points[closest_point])
         points = np.delete(points, closest_point, 0)
     return np.array(path)
+
 
 def chop_path(path: np.ndarray, max_dist: float) -> List[np.ndarray]:
     # chop the path into smaller paths, each with a maximum distance of max_dist
@@ -750,6 +763,7 @@ def chop_path(path: np.ndarray, max_dist: float) -> List[np.ndarray]:
             current_path.append(path[i])
     paths.append(np.array(current_path))
     return paths
+
 
 def filter_paths(paths: List[np.ndarray], min_length: int) -> List[np.ndarray]:
     # remove paths that are too short, and also sort paths by length
@@ -770,16 +784,29 @@ def fill_shape_path(shape: Polygon, distance: float = 2.0) -> np.ndarray:
     max_y = distance * np.ceil(max_y / distance)
 
     # create a grid of points, alternate positive and negative for every x
-    points = []
+    grid_points = []
     for i, x in enumerate(np.arange(min_x, max_x, distance)):
-        row_points = np.arange(min_y, max_y, distance)
+        row_points = np.arange(min_y, max_y, distance * 0.1)
         if i % 2 == 0:
             row_points = row_points[::-1]
-        points.extend([[x, y] for y in row_points])
+        grid_points.append([[x, y] for y in row_points])
 
     # only keep points that are within the shape
-    points = np.array([p for p in points if shape.contains(Point(p))])
+    array_points  =[]
+    for line_points in grid_points:
+        good_points = []
+        for p in line_points:
+            if shape.contains(Point(p)):
+                good_points.append(p)
+        # only keep first and last point of each line
+        if len(good_points) > 0:
+            array_points.append(good_points[0])
+            array_points.append(good_points[-1])
+
+    points = np.array(array_points)
     return points
+
+
 
 def fill_shape_path2(shape: Polygon, distance: float = 2.0) -> np.ndarray:
     # create a path that fills the shape
@@ -804,8 +831,6 @@ def fill_shape_path2(shape: Polygon, distance: float = 2.0) -> np.ndarray:
     # only keep points that are within the shape
     points = np.array([p for p in points if shape.contains(Point(p))])
     return points
-
-
 
 
 def main():
@@ -838,13 +863,13 @@ def main():
     ys = ys - mean[1]
 
     # find the max distance from the mean
-    max_dist = np.max(np.sqrt(xs ** 2 + ys ** 2))
+    max_dist = np.max(np.sqrt(xs**2 + ys**2))
 
     # divide all points by the max distance
     xs = xs / max_dist
     ys = ys / max_dist
 
-    filtered_points = voxel_grid_filter_2d(np.array([xs, ys]).T, grid_resolution=0.02)
+    filtered_points = voxel_grid_filter_2d(np.array([xs, ys]).T, grid_resolution=0.03)
     a_shape = alphashape.alphashape(filtered_points, 6.0)
     shape_outline = np.array(a_shape.exterior.coords)
 
@@ -852,12 +877,12 @@ def main():
     chopped_paths = chop_path(path, max_dist=0.1)
     filtered_paths = filter_paths(chopped_paths, min_length=10)
     print(f"NUM PATHS: {len(filtered_paths)}")
-    filtered_paths = filtered_paths[: 10] # take max 10 paths
+    filtered_paths = filtered_paths[:10]  # take max 10 paths
 
     fill_path = fill_shape_path(a_shape, distance=0.042)
 
     all_paths = filtered_paths.copy()
-    all_paths.insert(0,shape_outline)
+    all_paths.insert(0, shape_outline)
     all_paths.append(fill_path)
     with open(Args.output, "wb") as f:
         pkl.dump(all_paths, f)
@@ -873,24 +898,25 @@ def main():
 
         # plot filtered shape
         axs[4].add_patch(PolygonPatch(a_shape, alpha=0.5))
-        axs[4].plot(filtered_points[:, 0], filtered_points[:, 1], 'o', markersize=1)
+        axs[4].plot(filtered_points[:, 0], filtered_points[:, 1], "o", markersize=1)
         axs[4].axis("equal")
 
         # plot outline of shape
-        axs[5].plot(shape_outline[:, 0], shape_outline[:, 1], 'r')
+        axs[5].plot(shape_outline[:, 0], shape_outline[:, 1], "r")
         # plot all chopped paths
         for pa in filtered_paths:
-            axs[5].plot(pa[:, 0], pa[:, 1], 'b')
+            axs[5].plot(pa[:, 0], pa[:, 1], "b")
         axs[5].axis("equal")
 
         # show the fill path for the shape
         # make line thin
-        axs[6].plot(shape_outline[:, 0], shape_outline[:, 1], 'r')
-        axs[6].plot(fill_path[:, 0], fill_path[:, 1], 'b', linewidth=0.5)
+        axs[6].plot(shape_outline[:, 0], shape_outline[:, 1], "r")
+        axs[6].plot(fill_path[:, 0], fill_path[:, 1], "b", linewidth=0.5)
         axs[6].axis("equal")
         plt.show()
-    
+
     return all_paths
+
 
 if __name__ == "__main__":
     main()
