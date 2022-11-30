@@ -610,6 +610,9 @@ def sobel(image):
     res = np.hypot(Gx, Gy)
     res /= np.max(res)
     res = np.array(res * 255, dtype=np.uint8)
+    # if it is 2d then make it 3d
+    if len(res.shape) == 2:
+        res = np.dstack([res, res, res])
     return res[2:-2, 2:-2, 0:3]
 #
 #
