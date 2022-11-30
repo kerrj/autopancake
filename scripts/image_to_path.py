@@ -848,7 +848,7 @@ def main():
     a_shape = alphashape.alphashape(filtered_points, 6.0)
     shape_outline = np.array(a_shape.exterior.coords)
 
-    path = create_path_with_points(filtered_points, shape_outline, thresh=0.001)
+    path = create_path_with_points(filtered_points, shape_outline, thresh=0.04)
     chopped_paths = chop_path(path, max_dist=0.1)
     filtered_paths = filter_paths(chopped_paths, min_length=10)
     print(f"NUM PATHS: {len(filtered_paths)}")

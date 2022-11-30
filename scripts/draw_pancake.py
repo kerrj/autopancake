@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from autopancake.planner import generate_circle_traj
 import argparse
 import pickle as pkl
-PAN_CENTER = (-.13,-.64, .0075)
+PAN_CENTER = (-.13,-.64, .02)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -29,7 +29,7 @@ if __name__ == '__main__':
     
     # #accept the bottle
     input("Press enter to close around the bottle")
-    drawer.close_on_bottle(80)
+    drawer.close_on_bottle(65)
     print("finished closing")
     
     #execute the drawing
@@ -37,4 +37,6 @@ if __name__ == '__main__':
     #     input("Press enter to do next")
     #     drawer.draw_path(wp)
 
-    drawer.draw_multi_paths([all_waypoints[0]] + [all_waypoints[-1]])
+    # drawer.draw_multi_paths([all_waypoints[0]] + [all_waypoints[-1]])
+    drawer.draw_multi_paths(all_waypoints)
+
