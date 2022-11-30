@@ -4,11 +4,12 @@ import matplotlib.pyplot as plt
 from autopancake.planner import generate_circle_traj
 import argparse
 import pickle as pkl
-PAN_CENTER = (.65,0,.0)
+PAN_CENTER = (-.13,-.64,0.)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input", help="input waypoints file")
+    parser.add_argument("-s", "--scale", type=float, default=0.1, help="scale")
     args = parser.parse_args()
 
     drawer = PancakeDrawer(PAN_CENTER)
@@ -19,20 +20,16 @@ if __name__ == '__main__':
         with open(args.input,'rb') as f:
             all_waypoints = pkl.load(f)
         #normalize the traj
-        max_value = max([abs(wp).max() for wp in all_waypoints])
-        all_waypoints = [0.2*wp/max_value - 0.1 for wp in all_waypoints]
-        all_waypoints = [np.concatenate([wp,np.zeros((len(wp),1))],axis=1) for wp in all_waypoints]
+        all_waypoints = [
+            np.concatenate([args.scale * wp, np.zeros((len(wp), 1))], axis=1)
+            for wp in all_waypoints]
         
-        # for wp in all_waypoints:
-        #     plt.plot(wp[:,0],wp[:,1])
-        # plt.show()
-
     #home the arm
     drawer.home()
     
     # #accept the bottle
     input("Press enter to close around the bottle")
-    drawer.close_on_bottle()
+    drawer.close_on_bottle(83)
     print("finished closing")
     
     #execute the drawing
@@ -40,4 +37,4 @@ if __name__ == '__main__':
     #     input("Press enter to do next")
     #     drawer.draw_path(wp)
 
-    drawer.draw_multi_paths(all_waypoints)
+    drawer.draw_multi_paths([all_waypoints[0]] + [all_waypoints[-1]])

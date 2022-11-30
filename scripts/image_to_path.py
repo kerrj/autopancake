@@ -813,7 +813,7 @@ def main():
     print(f"NUM PATHS: {len(filtered_paths)}")
     filtered_paths = filtered_paths[: 10] # take max 10 paths
 
-    fill_path = fill_shape_path(a_shape, distance=5.0)
+    fill_path = fill_shape_path(a_shape, distance=7.5)
 
     if Args.plot:
         fig, axs = plt.subplots(1, 7)
