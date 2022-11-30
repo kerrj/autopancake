@@ -4,7 +4,7 @@ from autolab_core import RigidTransform
 import numpy as np
 import time
 class PancakeDrawer:
-    HOME_JOINTS = np.array([0.21088454127311707 - np.pi / 2.0, -2.3260086218463343, -1.6002996603595179, -2.3468831221209925, 0.19129669666290283, 4.7159647941589355])
+    HOME_JOINTS = np.array([0.21088454127311707 - np.pi / 2.0, -2.3260086218463343+np.deg2rad(15), -1.6002996603595179, -2.3468831221209925, 0.19129669666290283, 4.7159647941589355])
     def __init__(self, pan_center: Tuple[float,float,float]):
         self.ur = UR5Robot(gripper=True)
         self.ur.gripper_set.set_speed(0)
@@ -12,7 +12,7 @@ class PancakeDrawer:
         self.ur.gripper.move_and_wait_for_pos(0,255,255)
         self.close_rate = 0.025 #TODO calibrate this: % of gripper close distance per mm of travel
         self.pan_center = np.array(pan_center)
-        self.draw_speed = .05#meters/s
+        self.draw_speed = .08#meters/s
         
     def draw_path(self, path: List[Tuple[float,float]], gripper_pos: int):
         '''
@@ -22,12 +22,12 @@ class PancakeDrawer:
         # self.ur.gripper_set.set_force(5)
         self.ur.set_tcp(RigidTransform(translation=[0,0,0.15],rotation=RigidTransform.y_axis_rotation(-np.pi/2)))
         poses = [RigidTransform(translation=np.array(waypoint)+self.pan_center,rotation = RigidTransform.z_axis_rotation(-np.pi/2)) for waypoint in path]
-        self.ur.move_pose(poses[0],vel=.35)
+        self.ur.move_pose(poses[0],vel=.6)
+        self.ur.gripper.move_and_wait_for_pos(np.clip(gripper_pos, 0, 255), 0, 20)
         self.ur.move_tcp_path(poses[1:],vels = [self.draw_speed]*len(poses[1:]),
                             accs = [1.0]*len(poses[1:]),
-                            blends = [.002]*(len(poses[1:])-1)+[0],
+                            blends = [.0025]*(len(poses[1:])-1)+[0],
                             asyn=True)
-        self.ur.gripper.move(np.clip(gripper_pos, 0, 255), 0, 20)
         last_pose = None
         cur_dist = self.ur.gripper.get_current_position()
         while not self.ur.is_stopped():
@@ -50,22 +50,21 @@ class PancakeDrawer:
         for path in paths:
             if path.shape[-1]==2:
                 path = np.concatenate([path,np.zeros((len(path),1))],axis=1)
-            self.draw_path(path, end_gripper_pos+25)
+            self.draw_path(path, end_gripper_pos + 15)
             end_gripper_pos = self.ur.gripper.get_current_position()
-            if i==0:
-                self.ur.gripper.move(np.clip(start_gripper_pos+20,0,255),0,20)
-            else:
-                self.ur.gripper.move(np.clip(start_gripper_pos+10,0,255),0,20)
+            self.ur.gripper.move(np.clip(end_gripper_pos-5,0,255),0,20)
             start_gripper_pos = end_gripper_pos
             self.close_rate = 0.015
             i += 1
         
-        curr_pos = self.ur.get_pose()
-        curr_pos.translation[2] += 0.05
-        self.ur.move_pose(curr_pos)
+        curr_pos = self.ur.get_pose()  
+        curr_pos.translation[2] += 0.15
+        self.ur.gripper.move(np.clip(end_gripper_pos-20,0,255),0,20)
+        self.ur.move_pose(curr_pos*RigidTransform(rotation=RigidTransform.x_axis_rotation(np.deg2rad(-100)),from_frame=curr_pos.from_frame,to_frame=curr_pos.from_frame) ,vel=.3)
+
             
     def home(self):
-        self.ur.move_joint(self.HOME_JOINTS,vel=.2)
+        self.ur.move_joint(self.HOME_JOINTS,vel=.4)
         
     def close_on_bottle(self,value=255):
         self.ur.gripper.move_and_wait_for_pos(value,0,0)#TODO calibrate this

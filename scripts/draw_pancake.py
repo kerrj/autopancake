@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from autopancake.planner import generate_circle_traj
 import argparse
 import pickle as pkl
-PAN_CENTER = (-.13,-.64, .0575)
+PAN_CENTER = (-.13,-.64, .0075)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
